@@ -1,0 +1,68 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+
+export default function AcceptInvitePage() {
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [ready, setReady] = useState(false)
+  const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash) {
+      const params = new URLSearchParams(hash.substring(1))
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+      if (accessToken && refreshToken) {
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(() => {
+          setReady(true)
+        })
+      }
+    }
+  }, [])
+
+  async function handleSetPassword() {
+    setLoading(true)
+    setError(null)
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
+    router.push('/dashboard')
+  }
+
+  return (
+    <main className='min-h-screen bg-stone-50 flex items-center justify-center px-4'>
+      <div className='w-full max-w-md'>
+        <div className='text-center mb-8'>
+          <div className='text-4xl mb-3'>🕊️</div>
+          <h1 className='text-2xl font-semibold text-stone-800'>Accept your invitation</h1>
+          <p className='text-stone-500 mt-1'>Set a password to create your account</p>
+        </div>
+        <div className='bg-white rounded-xl shadow-sm border border-stone-200 p-8'>
+          {!ready ? (
+            <p className='text-stone-500 text-center'>Loading...</p>
+          ) : (
+            <div className='space-y-5'>
+              <div>
+                <label className='block text-sm font-medium text-stone-700 mb-1'>Choose a password</label>
+                <input value={password} onChange={e => setPassword(e.target.value)} type='password' placeholder='At least 8 characters' minLength={8} className='w-full border border-stone-300 rounded-lg px-4 py-2.5 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400' />
+              </div>
+              {error && <p className='text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-2'>{error}</p>}
+              <button onClick={handleSetPassword} disabled={loading || password.length < 8} className='w-full bg-stone-800 text-white py-3 rounded-lg font-medium hover:bg-stone-700 transition-colors disabled:opacity-50'>
+                {loading ? 'Setting up your account...' : 'Create account'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  )
+}
