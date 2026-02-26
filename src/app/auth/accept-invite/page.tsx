@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 export default function AcceptInvitePage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const router = useRouter()
   const supabase = createClient()
