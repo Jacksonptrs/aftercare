@@ -1,14 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const formData = await request.formData()
-  const file = formData.get('file')
-  const estate_id = formData.get('estate_id')
-  const category_id = formData.get('category_id') || null
+  const file = formData.get('file') as File
+  const estate_id = formData.get('estate_id') as string
+  const category_id = formData.get('category_id') as string || null
   if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
   const bytes = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)

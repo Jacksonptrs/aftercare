@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 
-export async function GET(request, { params }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ docId: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -9,10 +9,10 @@ export async function GET(request, { params }) {
   const { data: doc } = await supabase.from('documents').select('*').eq('id', docId).single()
   if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const { data } = await supabase.storage.from('estate-documents').createSignedUrl(doc.file_path, 60)
-  return NextResponse.json({ url: data.signedUrl })
+  return NextResponse.json({ url: data?.signedUrl })
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ docId: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
