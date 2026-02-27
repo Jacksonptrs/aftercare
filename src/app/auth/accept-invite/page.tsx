@@ -65,4 +65,4 @@ export default function AcceptInvitePage() {
       </div>
     </main>
   )
-}
+}// updated
