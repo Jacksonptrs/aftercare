@@ -1,1 +1,45 @@
-import { createServerClient } from '@supabase/ssr'\nimport { NextResponse, type NextRequest } from 'next/server'\n\nexport async function middleware(request: NextRequest) {\n  let supabaseResponse = NextResponse.next({ request })\n  const supabase = createServerClient(\n    process.env.NEXT_PUBLIC_SUPABASE_URL!,\n    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,\n    {\n      cookies: {\n        getAll() {\n          return request.cookies.getAll()\n        },\n        setAll(cookiesToSet) {\n          cookiesToSet.forEach(({ name, value }) =>\n            request.cookies.set(name, value)\n          )\n          supabaseResponse = NextResponse.next({ request })\n          cookiesToSet.forEach(({ name, value, options }) =>\n            supabaseResponse.cookies.set(name, value, options)\n          )\n        },\n      },\n    }\n  )\n  const { data: { user } } = await supabase.auth.getUser()\n  if (request.nextUrl.pathname.startsWith('/auth/accept-invite')) {\n    return supabaseResponse\n  }\n  if (request.nextUrl.pathname.startsWith('/auth/signout')) {\n    return supabaseResponse\n  }\n  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {\n    return NextResponse.redirect(new URL('/auth/login', request.url))\n  }\n  if (user && request.nextUrl.pathname.startsWith('/auth')) {\n    return NextResponse.redirect(new URL('/dashboard', request.url))\n  }\n  return supabaseResponse\n}\n\nexport const config = {\n  matcher: ['/dashboard/:path*', '/auth/:path*'],\n}
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+export async function middleware(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request })
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+  const { data: { user } } = await supabase.auth.getUser()
+  if (request.nextUrl.pathname.startsWith('/auth/accept-invite')) {
+    return supabaseResponse
+  }
+  if (request.nextUrl.pathname.startsWith('/auth/signout')) {
+    return supabaseResponse
+  }
+  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+  if (user && request.nextUrl.pathname.startsWith('/auth')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+  return supabaseResponse
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/auth/:path*'],
+}
+
