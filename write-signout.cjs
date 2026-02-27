@@ -1,17 +1,46 @@
 const fs = require('fs');
 
-const signoutRoute = [
-  "import { createClient } from '@/lib/supabase/server'",
-  "import { NextResponse } from 'next/server'",
-  "",
-  "export async function POST() {",
-  "  const supabase = await createClient()",
-  "  await supabase.auth.signOut()",
-  "  return NextResponse.redirect(new URL('/auth/login', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'))",
-  "}"
-].join('\n');
+const middleware = `import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+export async function middleware(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request })
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+  const { data: { user } } = await supabase.auth.getUser()
+  if (request.nextUrl.pathname.startsWith('/auth/accept-invite')) {
+                                  if (request.nextUrl.pathname.startsWith('/auth/signout')) {
+    return supabaseResponse
+  }
+  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+  if (user && request.nextUrl.pathname.startsWith('/auth')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+  return supabaseResponse
+}
+export const config = {
+  matcher: ['/dashboard/:path*', '/auth/:path*'],
+}`;
 
-fs.mkdirSync('src/app/auth/signout', { recursive: true });
-fs.writeFileSync('src/app/auth/signout/route.ts', signoutRoute);
+fs.writeFileSync('src/middleware.ts', middleware);
 console.log('Done!');
-console.log('signout route: ' + fs.statSync('src/app/auth/signout/route.ts').size);
+console.log('middleware: ' + fs.statSync('src/middleware.ts').size);
